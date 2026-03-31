@@ -91,7 +91,7 @@
         drawing = false; 
     });
 
-    // SEND CLOUD
+    // SEND CLOUD (Updated with the Live Sky Link!)
     async function sendCloud() {
         const sum = coordinates.reduce((a, b) => a + b, 0);
         if (coordinates.length === 0) { 
@@ -99,8 +99,8 @@
             return; 
         }
 
-        // We point it to the portal endpoint on port 3009
-        const response = await fetch('http://localhost:3009/flying-fish-portal', {
+        // We point it to the REAL sky on Render now!
+        const response = await fetch('https://flying-fish-api.onrender.com/flying-fish-portal', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json', 
@@ -117,44 +117,40 @@
         
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         coordinates = [];
-        loadGallery(); // Refresh the gallery automatically!
+        loadGallery(); 
     }
 
-    // THE GALLERY FETCHER (The Trap-Reader)
+    // THE GALLERY FETCHER (Updated with the Live Sky Link!)
     async function loadGallery() {
         const container = document.getElementById('galleryContainer');
         container.innerHTML = "Opening the cave...";
 
-        // We point it to the gallery endpoint on port 3009
-        const response = await fetch('http://localhost:3009/cloud-gallery', {
-            headers: { 'x-mindset': 'dreamer-not-programmer' } // Must prove we are worthy!
+        // Pointing to the Render sky!
+        const response = await fetch('https://flying-fish-api.onrender.com/cloud-gallery', {
+            headers: { 'x-mindset': 'dreamer-not-programmer' } 
         });
 
         const clouds = await response.json();
-        container.innerHTML = ""; // Clear the loading text
+        container.innerHTML = ""; 
 
         clouds.forEach(cloud => {
-            // Create a mini box for each cloud
             const cloudDiv = document.createElement('div');
             cloudDiv.style.border = "2px solid #a5b4fc";
             cloudDiv.style.padding = "10px";
             cloudDiv.innerHTML = `<p>${cloud.cloudName}</p>`;
             
-            // We create a mini canvas to redraw the cloud!
             const miniCanvas = document.createElement('canvas');
             miniCanvas.width = 100;
             miniCanvas.height = 75;
             miniCanvas.style.backgroundColor = "#161b22";
             const miniCtx = miniCanvas.getContext('2d');
             
-            // Here is the magic: Reconstructing the messy drawing!
             miniCtx.beginPath();
             miniCtx.strokeStyle = '#ff007f';
             miniCtx.lineWidth = 2;
             
-            // Since we stored single sums, we simulate the strokes
             cloud.skyCoordinates.forEach((coord, index) => {
-                const x = (coord % 100); // Re-mapping the messy math
+                const x = (coord % 100); 
                 const y = (coord % 75);
                 if (index === 0) miniCtx.moveTo(x, y);
                 else miniCtx.lineTo(x, y);
