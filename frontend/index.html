@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>The Sky Where Fish Fly</title>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #a5b4fc;
+            font-family: 'Comic Sans MS', cursive; /* Because standard fonts are too rigid! */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #cloudCanvas {
+            border: 3px dashed #ff007f;
+            background-color: #161b22;
+            cursor: crosshair;
+        }
+        .btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #ff007f;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+    /* This makes the gallery look like a floating sky */
+        #galleryContainer div {
+            animation: drift 4s ease-in-out infinite alternate;
+            border-radius: 15px; /* So the boxes aren't too sharp! */
+            box-shadow: 0 4px 15px rgba(0, 255, 255, 0.2);
+        }
+
+        /* Every second cloud will drift differently */
+        #galleryContainer div:nth-child(even) {
+            animation: driftReverse 5s ease-in-out infinite alternate;
+        }
+
+        @keyframes drift {
+            from { transform: translateY(0px); }
+            to { transform: translateY(-10px); }
+        }
+
+        @keyframes driftReverse {
+            from { transform: translateY(-5px); }
+            to { transform: translateY(5px); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Draw a Messy Cloud to Enter the Portal</h1>
+    <canvas id="cloudCanvas" width="400" height="300"></canvas>
+    <br>
+    <button class="btn" onclick="sendCloud()">Release the Cloud</button>
+
+    <div style="margin-top: 40px;">
+        <h2>The Gallery of Forgotten Clouds</h2>
+        <button class="btn" style="background-color: #00ffff; color: #0d1117;" onclick="loadGallery()">Open the Gallery</button>
+        <div id="galleryContainer" style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px;"></div>
+    </div>
+
+<script>
+    const canvas = document.getElementById('cloudCanvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+    let coordinates = [];
+
+    // Drawing logic
+    canvas.addEventListener('mousedown', (e) => { 
+        drawing = true; 
+        ctx.beginPath(); 
+        ctx.moveTo(e.offsetX, e.offsetY); 
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+        if (!drawing) return;
+        ctx.lineTo(e.offsetX, e.offsetY);
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        coordinates.push(e.offsetX + e.offsetY);
+    });
+    
+    canvas.addEventListener('mouseup', () => { 
+        drawing = false; 
+    });
+
+    // SEND CLOUD
+    async function sendCloud() {
+        const sum = coordinates.reduce((a, b) => a + b, 0);
+        if (coordinates.length === 0) { 
+            alert("You didn't draw anything!"); 
+            return; 
+        }
+
+        // We point it to the portal endpoint on port 3009
+        const response = await fetch('http://localhost:3009/flying-fish-portal', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'x-mindset': 'dreamer-not-programmer' 
+            },
+            body: JSON.stringify({ 
+                cloudName: "Hand Drawn Cloud #" + Math.floor(Math.random() * 100), 
+                skyCoordinates: coordinates 
+            })
+        });
+
+        const data = await response.json();
+        alert(data.msg || data.reason);
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        coordinates = [];
+        loadGallery(); // Refresh the gallery automatically!
+    }
+
+    // THE GALLERY FETCHER (The Trap-Reader)
+    async function loadGallery() {
+        const container = document.getElementById('galleryContainer');
+        container.innerHTML = "Opening the cave...";
+
+        // We point it to the gallery endpoint on port 3009
+        const response = await fetch('http://localhost:3009/cloud-gallery', {
+            headers: { 'x-mindset': 'dreamer-not-programmer' } // Must prove we are worthy!
+        });
+
+        const clouds = await response.json();
+        container.innerHTML = ""; // Clear the loading text
+
+        clouds.forEach(cloud => {
+            // Create a mini box for each cloud
+            const cloudDiv = document.createElement('div');
+            cloudDiv.style.border = "2px solid #a5b4fc";
+            cloudDiv.style.padding = "10px";
+            cloudDiv.innerHTML = `<p>${cloud.cloudName}</p>`;
+            
+            // We create a mini canvas to redraw the cloud!
+            const miniCanvas = document.createElement('canvas');
+            miniCanvas.width = 100;
+            miniCanvas.height = 75;
+            miniCanvas.style.backgroundColor = "#161b22";
+            const miniCtx = miniCanvas.getContext('2d');
+            
+            // Here is the magic: Reconstructing the messy drawing!
+            miniCtx.beginPath();
+            miniCtx.strokeStyle = '#ff007f';
+            miniCtx.lineWidth = 2;
+            
+            // Since we stored single sums, we simulate the strokes
+            cloud.skyCoordinates.forEach((coord, index) => {
+                const x = (coord % 100); // Re-mapping the messy math
+                const y = (coord % 75);
+                if (index === 0) miniCtx.moveTo(x, y);
+                else miniCtx.lineTo(x, y);
+            });
+            miniCtx.stroke();
+            
+            cloudDiv.appendChild(miniCanvas);
+            container.appendChild(cloudDiv);
+        });
+    }
+</script>
+</body>
+</html>
